@@ -27,7 +27,7 @@ import java.util.UUID;
 public class OrderService {
 
     private final OrderRepository orderRepository;
-//    private final WebClient.Builder webClientBuilder;
+    private final WebClient webClient;
 //    private final ObservationRegistry observationRegistry;
 //    private final ApplicationEventPublisher applicationEventPublisher;
 
@@ -39,10 +39,26 @@ public class OrderService {
                 .stream()
                 .map(this::mapToDto)
                 .toList();
+        List<String> skuCodes = order.getOrderLineItemsList().stream()
+                .map(OrderLineItems::getSkuCode)
+                .toList();
 
         order.setOrderLineItemsList(orderLineItems);
-        orderRepository.save(order);
-        return "";
+        InventoryResponse[] inventoryResponseArray = webClient.get()
+                .uri("http://localhost:8082/api/inventory" ,
+                        uriBuilder -> uriBuilder.queryParam("skuCodes", skuCodes).build() )
+                        .retrieve()
+                                .bodyToMono(InventoryResponse[].class)
+                                        .block();
+        boolean allProductsInStock = Arrays.stream(inventoryResponseArray).allMatch(InventoryResponse::isInStock);
+        if(allProductsInStock) {
+            orderRepository.save(order);
+
+        }else {
+            throw new IllegalArgumentException("product is not in stock, please try again later ");
+        }
+
+   return "";
     }
 
 //        List<String> skuCodes = order.getOrderLineItemsList().stream()
