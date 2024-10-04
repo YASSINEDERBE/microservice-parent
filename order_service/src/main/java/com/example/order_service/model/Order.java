@@ -18,7 +18,9 @@ public class Order {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
     private String orderNumber;
-    @OneToMany(cascade = CascadeType.ALL)
+
+    @OneToMany(mappedBy = "order", cascade = CascadeType.ALL) // Indicate ownership
     private List<OrderLineItems> orderLineItemsList;
 }
