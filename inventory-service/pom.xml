@@ -10,7 +10,7 @@
     <properties>
         <java.version>17</java.version> <!-- Set your desired Java version -->
         <spring-cloud.version>2023.0.0</spring-cloud.version> <!-- Use the appropriate version -->
-        <spring-boot.version>3.1.0</spring-boot.version> <!-- Specify the Spring Boot version explicitly -->
+<!--        <spring-boot.version>3.1.0</spring-boot.version> &lt;!&ndash; Specify the Spring Boot version explicitly &ndash;&gt;-->
     </properties>
 
     <artifactId>inventory-service</artifactId>

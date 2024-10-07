@@ -65,7 +65,7 @@ public class OrderService {
         if (allProductsInStock) {
             orderRepository.save(order);
             // Publish Order Placed Event
-            applicationEventPublisher.publishEvent(new OrderPlacedEvent(this, order.getOrderNumber()));
+//            applicationEventPublisher.publishEvent(new OrderPlacedEvent(this, order.getOrderNumber()));
             return "Order Placed";
         } else {
             throw new IllegalArgumentException("Product is not in stock, please try again later.");
