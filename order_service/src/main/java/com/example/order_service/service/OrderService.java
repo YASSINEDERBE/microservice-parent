@@ -9,6 +9,8 @@ import com.example.order_service.model.OrderLineItems;
 import com.example.order_service.repository.OrderRepository;
 import io.micrometer.observation.Observation;
 import io.micrometer.observation.ObservationRegistry;
+import io.micrometer.tracing.Span;
+import io.micrometer.tracing.Tracer;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.ApplicationEventPublisher;
@@ -30,6 +32,7 @@ public class OrderService {
     private final WebClient.Builder webClientBuilder;
     private final ObservationRegistry observationRegistry; // Uncommented
     private final ApplicationEventPublisher applicationEventPublisher; // Uncommented
+    private final Tracer tracer;
 
     public String placeOrder(OrderRequest orderRequest) {
         Order order = new Order();
@@ -49,27 +52,37 @@ public class OrderService {
                 .map(OrderLineItems::getSkuCode)
                 .toList();
 
-        // Call inventory service to check stock
-        InventoryResponse[] inventoryResponseArray = webClientBuilder.build().get()
-                .uri("http://inventory-service/api/inventory",
-                        uriBuilder -> uriBuilder.queryParam("skuCode", skuCodes).build())
-                .retrieve()
-                .bodyToMono(InventoryResponse[].class)
-                .block();
+        Span inventoryservicelookup = tracer.nextSpan().name("InventoryServiceLookup");
 
-        log.info("Inventory Response Array: {}", Arrays.toString(inventoryResponseArray));
 
-        boolean allProductsInStock = Arrays.stream(inventoryResponseArray).allMatch(InventoryResponse::isInStock);
+        try(Tracer.SpanInScope spanInScope=tracer.withSpan(inventoryservicelookup.start())){
+            // Call inventory service to check stock
+            InventoryResponse[] inventoryResponseArray = webClientBuilder.build().get()
+                    .uri("http://inventory-service/api/inventory",
+                            uriBuilder -> uriBuilder.queryParam("skuCode", skuCodes).build())
+                    .retrieve()
+                    .bodyToMono(InventoryResponse[].class)
+                    .block();
 
-        // Save order only if all products are in stock
-        if (allProductsInStock) {
-            orderRepository.save(order);
-            // Publish Order Placed Event
+            log.info("Inventory Response Array: {}", Arrays.toString(inventoryResponseArray));
+
+            boolean allProductsInStock = Arrays.stream(inventoryResponseArray).allMatch(InventoryResponse::isInStock);
+
+            // Save order only if all products are in stock
+            if (allProductsInStock) {
+                orderRepository.save(order);
+                // Publish Order Placed Event
 //            applicationEventPublisher.publishEvent(new OrderPlacedEvent(this, order.getOrderNumber()));
-            return "Order Placed";
-        } else {
-            throw new IllegalArgumentException("Product is not in stock, please try again later.");
+                return "Order Placed";
+            } else {
+                throw new IllegalArgumentException("Product is not in stock, please try again later.");
+            }
+
+        }finally {
+        inventoryservicelookup.end();
         }
+
+
     }
 
     private OrderLineItems mapToDto(OrderLineItemsDto orderLineItemsDto) {

@@ -21,6 +21,6 @@ public class Order {
 
     private String orderNumber;
 
-    @OneToMany(mappedBy = "order", cascade = CascadeType.ALL) // Indicate ownership
+    @OneToMany(mappedBy = "order", cascade = CascadeType.ALL)
     private List<OrderLineItems> orderLineItemsList;
 }
