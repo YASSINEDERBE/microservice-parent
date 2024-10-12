@@ -1,1 +1,6 @@
 docker run -p 8181:8080 -e KC_BOOTSTRAP_ADMIN_USERNAME=admin -e KC_BOOTSTRAP_ADMIN_PASSWORD=admin quay.io/keycloak/keycloak:26.0.0 start-dev
+docker run -d -p 9411:9411 openzipkin/zipkin
+
+//port
+netstat -ano | findstr :8080
+taskkill /PID <PID> /F
